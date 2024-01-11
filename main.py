@@ -113,7 +113,7 @@ def generate(prompts: List[str], model: Transformer, tokenizer: Tokenizer, *, ma
 
 def interactive(model_path: str, max_tokens: int = 35, temperature: float = 0.7, instruct: bool = False):
     tokenizer = Tokenizer(str(Path(model_path) / "tokenizer.model"))
-    transformer = Transformer.from_folder(Path(model_path), max_batch_size=3)
+    transformer = Transformer.from_folder(Path(model_path), max_batch_size=3, device="cpu")
 
     while True:
         prompt = input("Prompt: ")
@@ -141,7 +141,7 @@ def demo(
         should_print = True
     tokenizer = Tokenizer(str(Path(model_path) / "tokenizer.model"))
     transformer = Transformer.from_folder(
-        Path(model_path), max_batch_size=3, num_pipeline_ranks=num_pipeline_ranks
+        Path(model_path), max_batch_size=3, num_pipeline_ranks=num_pipeline_ranks, device="cpu"
     )
 
     res, _logprobs = generate(

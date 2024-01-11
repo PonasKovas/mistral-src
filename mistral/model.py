@@ -182,7 +182,7 @@ class Transformer(nn.Module):
         super().__init__()
         self.args = args
         self.vocab_size = args.vocab_size
-        self.n_layers = args.n_layers
+        self.n_layers = 1
         self._precomputed_freqs_cis: Optional[torch.Tensor] = None
         assert self.vocab_size > 0
         assert pipeline_rank < num_pipeline_ranks, (pipeline_rank, num_pipeline_ranks)
@@ -198,7 +198,7 @@ class Transformer(nn.Module):
             self.norm = RMSNorm(args.dim, eps=args.norm_eps)
             self.output = nn.Linear(args.dim, args.vocab_size, bias=False)
         # Initialize all layers but slice off those not of this rank.
-        layers = [TransformerBlock(args=args) for _ in range(args.n_layers)]
+        layers = [TransformerBlock(args=args)]
         num_layers_per_rank = math.ceil(self.n_layers / self.num_pipeline_ranks)
         offset = self.pipeline_rank * num_layers_per_rank
         end = min(self.n_layers, offset + num_layers_per_rank)
@@ -364,6 +364,11 @@ class Transformer(nn.Module):
                 pipeline_rank=pipeline_rank,
                 num_pipeline_ranks=num_pipeline_ranks,
             )
-        loaded = torch.load(str(folder / "consolidated.00.pth"), mmap=True)
+        loaded = torch.load(str(folder / "weights.pth"), mmap=True)
+
+        keys_to_delete = [key for key in loaded.keys() if key.startswith("layers.") and int(key.split(".")[1]) > 0]
+        for key in keys_to_delete:
+            del loaded[key]
+
         model.load_state_dict(loaded, assign=True)
-        return model.to(device=device, dtype=dtype)
+        return model.to(device=device, dtype=dtype).float()
